@@ -181,7 +181,8 @@ def ParseDisplayList(binfile: BinFile, gfxFile, extract):
             elif opcode == Gbi.G_LOADTLUT:
                 print(f"    gsDPLoadTLUTCmd({C1(words1, 24, 3)}, {C1(words1, 14, 10)}),", file=gfxFile)
             elif opcode == Gbi.G_SETTIMG:
-                print(f"    gsDPSetTextureImage({C0(words0, 21, 3)}, {C0(words0, 19, 2)}, 1, {ptrname.begin()}),", file=gfxFile)
+                texname = ptrname.begin() if ptrname != None else "NULL"
+                print(f"    gsDPSetTextureImage({C0(words0, 21, 3)}, {C0(words0, 19, 2)}, 1, {texname}),", file=gfxFile)
             elif opcode == Gbi.G_SETENVCOLOR:
                 print(f"    gsDPSetEnvColor({C1(words1, 24, 8)}, {C1(words1, 16, 8)}, {C1(words1, 8, 8)}, {C1(words1, 0, 8)}),", file=gfxFile)
             elif opcode == Gbi.G_SETPRIMCOLOR:
@@ -419,8 +420,47 @@ def ParseGeoLayout(binfile: BinFile, gfxFile, extract, geoFile):
         print("};\n", file=geoFile)
     print("GeoLayout Found:", name.begin())
 
-def ParseAnimation(binfile: BinFile):
-    print("Animation data parsed.")
+def ParseAnimation(binfile: BinFile, animFile):
+    name = ReadName(binfile)
+    
+    print(f"static const struct Animation {name.begin()}[] =" "{", file=animFile)
+    flags = binfile.ReadInt16()
+    unk02 = binfile.ReadInt16()
+    unk04 =binfile.ReadInt16()
+    unk06 = binfile.ReadInt16()
+    unk08 = binfile.ReadInt16()
+    unk0A = binfile.ReadInt16()
+    length = ReadBytes(binfile, 4)
+    valuescount = ReadBytes(binfile, 4)
+    values=[]
+    for i in range(valuescount):
+        values.append( binfile.ReadInt16())
+    indicescount = ReadBytes(binfile, 4)
+    indices=[]
+    for i in range(indicescount):
+        indices.append(binfile.ReadInt16())
+    
+    animname = name.begin()
+    
+    print(f"	{flags},\n	{unk02},\n	{unk04},\n	{unk06},\n	0x{unk08:x},\n	ANIMINDEX_NUMPARTS({animname}_indices),\n	{animname}_values,\n	{animname}_indices,\n	{length}",file=animFile)
+
+    print("};\n", file=animFile)
+    
+    print(f"static const u16 {animname}_indices[] = ", "{", file=animFile)
+
+    for i in range((indicescount)):
+        print(f"0x{indices[i]:X},", file=animFile)
+
+    print("};\n", file=animFile)
+    
+    print(f"static const s16 {animname}_values[] = ", "{", file=animFile)
+
+    for i in range((valuescount)):
+        print(f"0x{values[i]:x},", file=animFile)
+
+    print("};\n", file=animFile)
+    
+    print("Animation Found:", name.begin())
 
 def ParseGfxDynCmd(binfile: BinFile):
     print("Graphics Dynamic Command data parsed.")
@@ -432,7 +472,7 @@ def ParseTextureBinary(binfile: BinFile, extract:bool):
     print("Texture Found:", name.begin())
     ReadPNG(binfile, name, extract)
 
-def ParseActorBinary(binfile: BinFile, gfxFile, extract, geoFile):
+def ParseActorBinary(binfile: BinFile, gfxFile, extract, geoFile, animFile):
     _binfile = DynosCompress.DynosDecompressBin(binfile.mFileName)
     parse_functions = {
         Dynos.DATA_TYPE_LIGHT: ParseLights1,
@@ -452,7 +492,10 @@ def ParseActorBinary(binfile: BinFile, gfxFile, extract, geoFile):
         
         if dataType in parse_functions:
             if dataType != Dynos.DATA_TYPE_GEO_LAYOUT:
-                parse_functions[dataType](_binfile, gfxFile, extract)
+                if dataType == Dynos.DATA_TYPE_ANIMATION:
+                    parse_functions[dataType](_binfile, animFile)
+                else:
+                    parse_functions[dataType](_binfile, gfxFile, extract)
             else:
                 parse_functions[dataType](_binfile, gfxFile, extract, geoFile)
         else:
