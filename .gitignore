@@ -1,2 +1,3 @@
 *.bin
 Dump/*
+__pycache__/*

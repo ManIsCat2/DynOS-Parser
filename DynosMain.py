@@ -5,17 +5,19 @@ import os, shutil
 
 dump_dir = "Dump"
 
-def main(texturebin=False, actorbin=False, file = ""):
-    Binfile:BinFile = BinFile().OpenR(file)
-    # Remove the Dump directory if it exists
-    if os.path.exists(dump_dir):
-        shutil.rmtree(dump_dir)
-    os.makedirs(dump_dir, exist_ok=True)
-    gfxFile = open(os.path.join(dump_dir, "model.inc.c"), "w")
-    if texturebin:
-        DynosParse.ParseTextureBinary(Binfile)
-    elif actorbin:
-        DynosParse.ParseActorBinary(Binfile, gfxFile)
+def main(texturebin=False, actorbin=False, file = "", extract=False):
+	Binfile:BinFile = BinFile().OpenR(file)
+	if os.path.exists(dump_dir):
+		shutil.rmtree(dump_dir)
+	os.makedirs(dump_dir, exist_ok=True)
+
+	if actorbin:
+		gfxFile = open(os.path.join(dump_dir, "model.inc.c"), "w")
+		geoFile = open(os.path.join(dump_dir, "geo.inc.c"), "w")
+	if texturebin:
+		DynosParse.ParseTextureBinary(Binfile, extract)
+	elif actorbin:
+		DynosParse.ParseActorBinary(Binfile, gfxFile, extract, geoFile)
 
 def EvalArg(name, arg):
 	try:
