@@ -8,6 +8,7 @@ Use the `cd` command and move to the DynOS-Parser Directory.
 
 Run this:
 `py DynosMain.py extract=True actorbin=True file='BinName.bin'`
+
 or if you have a Texture:
 `py DynosMain.py extract=True texturebin=True file='TexName.tex'`
 
