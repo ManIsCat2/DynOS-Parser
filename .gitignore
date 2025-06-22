@@ -1,3 +1,5 @@
 *.bin
-Dump/*
-__pycache__/*
+*.tex
+*.png
+*.c
+Data/*

@@ -677,13 +677,10 @@ class BinFile:
         self.mReadOnly = ro
         self.mData = None
         self.mSize = 0
-
     def Offset(self):
         return self.mOffset
-
     def SetOffset(self, offset):
         self.mOffset = offset
-
     def OpenR(self, name):
         self.mFile = open(name, "rb")
         self.mFileName = name
@@ -694,12 +691,36 @@ class BinFile:
         self.mData = self.mFile.read(self.mSize)
         self.mOffset = 0
         return self
-
+    def OpenW(self, name):
+        self.mFile = open(name, "wb")
+        self.mReadOnly = False
+        self.mFileName = name
+        self.mOffset = 0
+        self.mFile.seek(0)
+        return self
+    def Close(self):
+        if self.mFile:
+            self.mFile.close()
+        self.mFile = None
+        self.mSize = 0
+        self.mData = None
+        self.mFileName = ""
     def Read(self, size):
         self.mFile.seek(self.mOffset)
         result = self.mFile.read(size)
         self.mOffset += size
         return result
+    def Write(self, buf, size=1):
+        if not self.mReadOnly:
+            self.mFile.seek(self.mOffset)
+            if type(buf) == int:
+                result = self.mFile.write(int(buf).to_bytes())
+            elif type(buf) == str:
+                result = self.mFile.write(buf.encode("ascii"))
+            else:
+                result = self.mFile.write(buf)
+            self.mOffset += size
+            return result
     def ReadFloat(self):
         float_bytes = self.Read(4)
         return struct.unpack('<f', float_bytes)[0]
@@ -709,18 +730,19 @@ class BinFile:
     def ReadInt8(self):
         byte_value = self.Read(1)
         return int.from_bytes(byte_value, 'little')
-
     def Skip(self, amount):
         self.mOffset += amount
 
 class String:
     def __init__(self, buffer=""):
         self.buffer = buffer
-
     def Read(self, binfile: BinFile):
         sizeofname = int.from_bytes(binfile.Read(1), 'little')
         self.buffer = binfile.Read(sizeofname).decode()
-
+    def Write(self, binfile: BinFile):
+        sizeofname = len(self.buffer)
+        binfile.Write(sizeofname, 1)
+        binfile.Write(self.buffer, sizeofname)
     def begin(self):
         return self.buffer
     
@@ -732,13 +754,13 @@ def ReadName(binfile: BinFile) -> String:
 def ReadBytes(binfile:BinFile, bytes:int):
     return int.from_bytes(binfile.Read(bytes), 'little')
 
-def DynosGetNameFromIndex(index):
+def DynosGetFuncNameFromIndex(index):
     if (index >= 0 and index < len(sDynosBuiltinFuncs)): return sDynosBuiltinFuncs[index]
 
 def DynosPointerRead(val, binfile, cannull=False):
     if val == FUNCTION_CODE: 
         funcindex = ReadBytes(binfile, 4)
-        return DynosGetNameFromIndex(funcindex)
+        return DynosGetFuncNameFromIndex(funcindex)
     elif val == POINTER_CODE: 
         ptrname = ReadName(binfile)
         ptrdata = ReadBytes(binfile, 4)
