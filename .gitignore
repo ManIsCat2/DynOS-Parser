@@ -3,3 +3,4 @@
 *.png
 *.c
 Data/*
+!gui/*
