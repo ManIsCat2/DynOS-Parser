@@ -7,3 +7,6 @@ Use the gui, and select your file and click "Run DyParse"
 it will also open a terminal and the errors and info will be displayed there.
 
 The output is gonna be in the 'Data' dir
+
+# This repo is archived, use PeachyPeach's program instead:
+https://github.com/PeachyPeachSM64/dynos-decomp
